@@ -582,10 +582,15 @@
             </label>
             <div class="cta-row">
               <button type="button" class="btn btn-primary" id="voiceBtn">🎤 Начать запись</button>
+              <button type="button" class="btn btn-secondary" id="voiceAskBtn">Получить ответ</button>
               <button type="button" class="btn btn-secondary" id="voiceClearBtn">Очистить</button>
             </div>
             <p class="hint" id="voiceStatus">Статус: ожидание.</p>
             <div class="notice" id="voiceNotice">Голосовой ввод доступен в совместимых браузерах.</div>
+            <div class="history-item" style="margin-top:12px;">
+              <strong>Ответ ассистента</strong>
+              <div id="voiceAnswer">Здесь появится ответ на распознанный голосовой вопрос.</div>
+            </div>
           </div>
         </div>
 
@@ -638,6 +643,7 @@
     // ВАЖНО: замени эти 2 значения на свои из Supabase
     const SUPABASE_URL = 'https://jpysidclbkhtflxqghuq.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_kGtTvyZ3ZumRb7pFg1mVRA_m3d8p1to';
+    const FLOWISE_PREDICTION_URL = 'PASTE_YOUR_FLOWISE_PREDICTION_URL_HERE';
 
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
@@ -686,10 +692,12 @@
     });
 
         const voiceBtn = document.getElementById('voiceBtn');
+    const voiceAskBtn = document.getElementById('voiceAskBtn');
     const voiceClearBtn = document.getElementById('voiceClearBtn');
     const voiceInput = document.getElementById('voiceInput');
     const voiceStatus = document.getElementById('voiceStatus');
     const voiceNotice = document.getElementById('voiceNotice');
+    const voiceAnswer = document.getElementById('voiceAnswer');
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -713,7 +721,56 @@
 
       voiceClearBtn.addEventListener('click', () => {
         voiceInput.value = '';
+        voiceAnswer.textContent = 'Здесь появится ответ на распознанный голосовой вопрос.';
         voiceStatus.textContent = 'Статус: очищено.';
+      });
+
+      voiceAskBtn.addEventListener('click', async () => {
+        const question = voiceInput.value.trim();
+
+        if (!question) {
+          voiceNotice.classList.add('show');
+          voiceNotice.textContent = 'Сначала запиши или введи вопрос.';
+          return;
+        }
+
+        if (FLOWISE_PREDICTION_URL === 'PASTE_YOUR_FLOWISE_PREDICTION_URL_HERE') {
+          voiceNotice.classList.add('show');
+          voiceNotice.textContent = 'Добавь ссылку Flowise Prediction URL в код лендинга.';
+          return;
+        }
+
+        voiceStatus.textContent = 'Статус: отправляю вопрос в AI...';
+        voiceNotice.classList.remove('show');
+        voiceAnswer.textContent = 'Генерируется ответ...';
+
+        try {
+          const response = await fetch(FLOWISE_PREDICTION_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              question,
+              overrideConfig: {
+                sessionId: 'landing-voice-demo'
+              }
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error('HTTP ' + response.status);
+          }
+
+          const data = await response.json();
+          voiceAnswer.textContent = data.text || 'Ответ получен, но поле text пустое.';
+          voiceStatus.textContent = 'Статус: ответ получен.';
+        } catch (error) {
+          voiceStatus.textContent = 'Статус: ошибка запроса.';
+          voiceNotice.classList.add('show');
+          voiceNotice.textContent = 'Не удалось получить ответ от AI: ' + error.message;
+          voiceAnswer.textContent = 'Ответ не получен.';
+        }
       });
 
       recognition.onresult = (event) => {
