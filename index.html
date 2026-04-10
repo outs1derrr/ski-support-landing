@@ -566,6 +566,50 @@
     </div>
   </section>
 
+    <section class="section" id="voice">
+    <div class="container">
+      <h2>Голосовой ввод</h2>
+      <p class="lead">
+        Пользователь может продиктовать вопрос голосом. Для демо используется распознавание речи прямо в браузере.
+      </p>
+      <div class="auth-grid">
+        <div class="card">
+          <h3>Спросить голосом</h3>
+          <div class="form">
+            <label>
+              Распознанный текст
+              <input type="text" id="voiceInput" placeholder="Нажми на кнопку микрофона и начни говорить" />
+            </label>
+            <div class="cta-row">
+              <button type="button" class="btn btn-primary" id="voiceBtn">🎤 Начать запись</button>
+              <button type="button" class="btn btn-secondary" id="voiceClearBtn">Очистить</button>
+            </div>
+            <p class="hint" id="voiceStatus">Статус: ожидание.</p>
+            <div class="notice" id="voiceNotice">Голосовой ввод доступен в совместимых браузерах.</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Как это работает</h3>
+          <div class="history-list">
+            <div class="history-item">
+              <strong>1. Нажмите на кнопку микрофона</strong>
+              <div>Браузер запросит разрешение на использование микрофона.</div>
+            </div>
+            <div class="history-item">
+              <strong>2. Произнесите вопрос</strong>
+              <div>Например: «Сколько стоит взрослый ски-пасс в выходные?»</div>
+            </div>
+            <div class="history-item">
+              <strong>3. Получите текст</strong>
+              <div>Распознанная фраза появится в поле и может быть отправлена в AI-бота.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <footer class="footer">
     <div class="container footer-card">
       <div>
@@ -640,6 +684,56 @@
       notice.textContent = 'Ссылка для входа отправлена на почту. Проверь email.';
       notice.classList.add('show');
     });
+
+        const voiceBtn = document.getElementById('voiceBtn');
+    const voiceClearBtn = document.getElementById('voiceClearBtn');
+    const voiceInput = document.getElementById('voiceInput');
+    const voiceStatus = document.getElementById('voiceStatus');
+    const voiceNotice = document.getElementById('voiceNotice');
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      voiceBtn.disabled = true;
+      voiceBtn.textContent = '🎤 Не поддерживается';
+      voiceStatus.textContent = 'Статус: браузер не поддерживает распознавание речи.';
+      voiceNotice.classList.add('show');
+      voiceNotice.textContent = 'Открой сайт в Google Chrome или другом совместимом браузере.';
+    } else {
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'ru-RU';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      voiceBtn.addEventListener('click', () => {
+        voiceStatus.textContent = 'Статус: слушаю...';
+        voiceNotice.classList.remove('show');
+        recognition.start();
+      });
+
+      voiceClearBtn.addEventListener('click', () => {
+        voiceInput.value = '';
+        voiceStatus.textContent = 'Статус: очищено.';
+      });
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        voiceInput.value = transcript;
+        voiceStatus.textContent = 'Статус: речь распознана.';
+      };
+
+      recognition.onerror = (event) => {
+        voiceStatus.textContent = 'Статус: ошибка распознавания.';
+        voiceNotice.classList.add('show');
+        voiceNotice.textContent = 'Ошибка: ' + event.error;
+      };
+
+      recognition.onend = () => {
+        if (!voiceInput.value) {
+          voiceStatus.textContent = 'Статус: запись остановлена.';
+        }
+      };
+    }
 
     checkSession();
   </script>
