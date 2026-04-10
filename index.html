@@ -576,6 +576,7 @@
     </div>
   </footer>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const preview = document.getElementById('qaPreview');
     const buttons = document.querySelectorAll('.question-btn');
@@ -590,12 +591,57 @@
       });
     });
 
+    // ВАЖНО: замени эти 2 значения на свои из Supabase
+    const SUPABASE_URL = 'https://jpysidclbkhtflxqghuq.supabase.co';
+    const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_kGtTvyZ3ZumRb7pFg1mVRA_m3d8p1to';
+
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
     const loginForm = document.getElementById('loginForm');
     const notice = document.getElementById('notice');
-    loginForm.addEventListener('submit', (e) => {
+    const emailInput = document.getElementById('email');
+
+    async function checkSession() {
+      const {
+        data: { session },
+        error
+      } = await supabaseClient.auth.getSession();
+
+      if (error) {
+        notice.textContent = 'Не удалось проверить сессию.';
+        notice.classList.add('show');
+        return;
+      }
+
+      if (session?.user?.email) {
+        notice.textContent = `Вы вошли как ${session.user.email}`;
+        notice.classList.add('show');
+      }
+    }
+
+    loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const email = emailInput.value.trim();
+      if (!email) return;
+
+      const { error } = await supabaseClient.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: window.location.origin + window.location.pathname
+        }
+      });
+
+      if (error) {
+        notice.textContent = 'Ошибка входа: ' + error.message;
+        notice.classList.add('show');
+        return;
+      }
+
+      notice.textContent = 'Ссылка для входа отправлена на почту. Проверь email.';
       notice.classList.add('show');
     });
+
+    checkSession();
   </script>
 </body>
 </html>
