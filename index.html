@@ -625,6 +625,14 @@
     </div>
   </footer>
 
+  <script>
+    !function(t,e){var o,n,p,r;e.__SV||(window.posthog && window.posthog.__loaded)||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="Ii init Di qi Sr Bi Zi Pi capture calculateEventProperties Yi register register_once register_for_session unregister unregister_for_session Xi getFeatureFlag getFeatureFlagPayload getFeatureFlagResult isFeatureEnabled reloadFeatureFlags updateFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey displaySurvey cancelPendingSurvey canRenderSurvey canRenderSurveyAsync Ji identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset setIdentity clearIdentity get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException startExceptionAutocapture stopExceptionAutocapture loadToolbar get_property getSessionProperty Wi Vi createPersonProfile setInternalOrTestUser Gi Fi tn opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing get_explicit_consent_status is_capturing clear_opt_in_out_capturing $i debug Tr Ui getPageViewId captureTraceFeedback captureTraceMetric Ri".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+    posthog.init('phc_uDubu6DDGfM9bfteE5Doyi9wpcSPv9Vh5yakLo6NWCMa', {
+        api_host: 'https://eu.i.posthog.com',
+        defaults: '2026-01-30',
+        person_profiles: 'identified_only'
+    });
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const preview = document.getElementById('qaPreview');
@@ -647,6 +655,19 @@
 
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
+    posthog.capture('landing_view', {
+      page: 'landing',
+      product: 'ai_ski_support'
+    });
+
+    document.querySelectorAll('a[href*="t.me/ski_support_demo_bot"]').forEach((link) => {
+      link.addEventListener('click', () => {
+        posthog.capture('open_tg_click', {
+          destination: 'telegram_bot'
+        });
+      });
+    });
+
     const loginForm = document.getElementById('loginForm');
     const notice = document.getElementById('notice');
     const emailInput = document.getElementById('email');
@@ -666,6 +687,12 @@
       if (session?.user?.email) {
         notice.textContent = `Вы вошли как ${session.user.email}`;
         notice.classList.add('show');
+        posthog.identify(session.user.id || session.user.email, {
+          email: session.user.email
+        });
+        posthog.capture('login_success', {
+          method: 'magic_link'
+        });
       }
     }
 
@@ -689,6 +716,9 @@
 
       notice.textContent = 'Ссылка для входа отправлена на почту. Проверь email.';
       notice.classList.add('show');
+      posthog.capture('login_magic_link_sent', {
+        method: 'magic_link'
+      });
     });
 
         const voiceBtn = document.getElementById('voiceBtn');
@@ -716,6 +746,9 @@
       voiceBtn.addEventListener('click', () => {
         voiceStatus.textContent = 'Статус: слушаю...';
         voiceNotice.classList.remove('show');
+        posthog.capture('voice_started', {
+          channel: 'landing'
+        });
         recognition.start();
       });
 
@@ -741,6 +774,10 @@
         }
 
         voiceStatus.textContent = 'Статус: отправляю вопрос в AI...';
+        posthog.capture('question_sent', {
+          channel: 'landing_voice',
+          input_type: 'voice_or_text'
+        });
         voiceNotice.classList.remove('show');
         voiceAnswer.textContent = 'Генерируется ответ...';
 
@@ -765,6 +802,10 @@
           const data = await response.json();
           voiceAnswer.textContent = data.text || 'Ответ получен, но поле text пустое.';
           voiceStatus.textContent = 'Статус: ответ получен.';
+          posthog.capture('answer_received', {
+            channel: 'landing_voice',
+            has_text: Boolean(data.text)
+          });
         } catch (error) {
           voiceStatus.textContent = 'Статус: ошибка запроса.';
           voiceNotice.classList.add('show');
@@ -777,6 +818,9 @@
         const transcript = event.results[0][0].transcript;
         voiceInput.value = transcript;
         voiceStatus.textContent = 'Статус: речь распознана.';
+        posthog.capture('voice_result_received', {
+          channel: 'landing'
+        });
       };
 
       recognition.onerror = (event) => {
